@@ -1,0 +1,18 @@
+{
+  "name": "leaddesk-mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LeadDesk domain MCP server (stdio): find leads by status, set lead status with an audit entry. Offline on fixtures/leads.json.",
+  "type": "module",
+  "main": "src/server.mjs",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "start": "node src/server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.1.0",
+    "zod": "4.6.5"
+  }
+}
