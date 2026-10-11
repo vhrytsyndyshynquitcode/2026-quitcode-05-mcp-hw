@@ -22,7 +22,10 @@
 
 - Міграція `supabase/migrations/0001_leaddesk.sql` створює таблиці: `leads` (CHECK на `id ~ '^lead_\d{4}$'`, статус — рівно `LEAD_STATUSES`, джерело — `LEAD_SOURCES`), індекс `(status, created_at desc)`, RLS увімкнено без політик
 - Сид `supabase/seed/leads.sql`: 20 рядків, `lead_0001`–`lead_0020`, ті самі, що в `materials/leads.json` (згенеровано з файла 1:1)
-- Скільки інструментів Supabase видно в `/mcp` із вашим URL: <N — після сесії>
+- Скільки інструментів Supabase видно в `/mcp` із вашим URL: 9 — `apply_migration`, `execute_sql`,
+  `generate_typescript_types`, `get_project_url`, `get_publishable_keys`, `list_extensions`,
+  `list_migrations`, `list_tables`, `search_docs` (сесія лише з `supabase`; у `list_tables` немає
+  параметра `project_id` — сервер прив'язаний до одного проєкту)
 - Якими викликами створено схему й дані і що ви схвалювали вручну: <після сесії>
 
 ## Сесії: що вмикаємо разом
