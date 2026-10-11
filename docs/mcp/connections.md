@@ -26,7 +26,10 @@
   `generate_typescript_types`, `get_project_url`, `get_publishable_keys`, `list_extensions`,
   `list_migrations`, `list_tables`, `search_docs` (сесія лише з `supabase`; у `list_tables` немає
   параметра `project_id` — сервер прив'язаний до одного проєкту)
-- Якими викликами створено схему й дані і що ви схвалювали вручну: <після сесії>
+- Якими викликами створено схему й дані і що ви схвалювали вручну: `apply_migration` (`leaddesk_init`) →
+  `execute_sql` (сид) → три `execute_sql` на читання: `count(*) = 20` (`lead_0001`–`lead_0020`), розподіл за
+  статусами = фікстура, роль `postgres` (`is_superuser = off`). Обидва записуючі інструменти не в `allow` —
+  дозвіл людина дала явно на цей один прогін після опису змін (деталі — `verification.md`, Task B)
 
 ## Сесії: що вмикаємо разом
 
@@ -36,7 +39,9 @@
 |---|---|---|
 | Вхід (OAuth) | `supabase`, `vercel` — лише Authenticate, агенту нічого не пишемо | — (жодного виклику) |
 | Міграція й сид | `supabase` | `supabase` |
-| Лог білду | `vercel` | —, записуючі інструменти під deny |
+| Лог білду | `vercel` (headless, `--strict-mcp-config`) | —, записуючі інструменти під deny |
+| A/B, прогін A | `supabase` з `read_only=true&features=database,docs` (окрема тека `ws5-ab-a`, скоуп `local`) | — (read_only) |
+| A/B, прогін B | `leaddesk` (окрема тека `ws5-ab-b`, скоуп `local`) | `leaddesk` |
 | Знімки «до/після» | `playwright` (headless `claude -p --strict-mcp-config --mcp-config <лише playwright>`) | — (нічого не викликали) |
 | Перевірка форми в браузері | `playwright` | `playwright` (браузер); Supabase вимкнено |
 

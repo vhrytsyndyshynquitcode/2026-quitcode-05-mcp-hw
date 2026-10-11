@@ -45,8 +45,32 @@
 
 ## Task B — що зробили агенти з серверами
 
-- **Supabase:** <які інструменти викликав агент для міграції й сиду; що ви схвалили вручну; чи щось відхилили>
-- **Vercel:** <як задеплоїли (git-інтеграція); яким інструментом отримали лог; що в ньому>
-- **Figma:** <`whoami`: план і сіт; скільки викликів витратили з квоти; з якого фрейму токени>
-- **Playwright:** <ланцюжок інструментів; чи відправилась форма; що в консолі й мережі>
-- Що агент зробив сам, без прохання (наприклад, викликав інструмент, який ви не очікували): <… / нічого>
+Як запускали сесії: кожен крок — окрема headless-сесія `claude -p --strict-mcp-config --mcp-config <рівно один
+сервер з .mcp.json>` у корені репозиторію (конектори claude.ai і решта серверів у сесію не потрапляють).
+Перший вхід — інтерактивно: `claude` → схвалити сервери з `.mcp.json` → `/mcp` → Authenticate.
+
+- **Supabase:** у сесії лише `supabase`, 9 інструментів. Виклики по черзі:
+  `apply_migration` (`name: leaddesk_init`, SQL = `supabase/migrations/0001_leaddesk.sql`) → `{"success":true}`;
+  `execute_sql` (SQL = `supabase/seed/leads.sql`) → `[]`;
+  `execute_sql` `select count(*), min(id), max(id) from public.leads` → `[{"n":20,"min":"lead_0001","max":"lead_0020"}]`;
+  `execute_sql` за статусами → contacted 4, lost 2, new 6, qualified 3, won 5 (= фікстура);
+  `execute_sql` `select current_user, session_user, current_setting('is_superuser')` →
+  `postgres / postgres / off` — `execute_sql` ходить під `postgres`, не суперкористувач, але повз RLS.
+  Схвалення: `apply_migration` і `execute_sql` не в `allow`; дозвіл на цей один прогін дала людина в чаті після
+  пояснення, що саме зміниться (`--allowedTools` лише на ці два інструменти), і підтвердила запуск у застосунку.
+  Кожен результат `execute_sql` загорнуто в `<untrusted-data-…>` з попередженням не виконувати інструкцій зсередини.
+  Перед міграцією `list_tables`/`list_migrations` (з allow) показали порожню схему.
+- **Vercel:** проєкт підключено через git-інтеграцію в дашборді; гілку `ws05/vhrytsyndyshynquitcode` запушено —
+  preview-деплой `READY` з коміту `cc1d6c0`. Сесія лише з `vercel`: `list_deployments` знайшов деплой, але
+  лог білду **не віддався**: інструмента `get_deployment_build_logs` з інструкції в сервері вже немає, лог тепер
+  віддає `list_deployment_events`, і він повертає `403 forbidden` («Not authorized: Trying to access resource
+  under scope…») — і без `teamId`, і з ним. `list_teams` для цього OAuth-токена повертає порожній список: під час
+  входу токен не отримав доступу до команди, якій належить проєкт. Лог — див. `docs/mcp/evidence/vercel-build-log.txt`.
+- **Playwright:** ланцюжок `browser_navigate` → `browser_snapshot` → `browser_fill_form` → `browser_click` →
+  `browser_snapshot` → `browser_console_messages` → `browser_network_requests` ×2. Форма відправилась
+  («Дякуємо! Заявку отримано…»), у консолі 0 помилок, після відправки — один `POST /` → 200, зовнішніх запитів
+  немає. Деталі — `docs/mcp/evidence/playwright-form-check.md`.
+- Що агент зробив сам, без прохання: у сесії Vercel агент **сам викликав `list_teams` і `list_projects`**
+  (опис параметра `teamId` прямо підказує це зробити). `list_projects` відхилено (не в allow), `list_teams`
+  повернув порожній список; їхні результати ніде не записані. Агент також запропонував обійти 403 через
+  `vercel inspect --logs` (CLI) — не виконано: CLI тут не встановлено, і це обхід звуження MCP.
