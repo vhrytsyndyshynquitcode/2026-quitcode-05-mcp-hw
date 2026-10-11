@@ -65,7 +65,11 @@
   лог білду **не віддався**: інструмента `get_deployment_build_logs` з інструкції в сервері вже немає, лог тепер
   віддає `list_deployment_events`, і він повертає `403 forbidden` («Not authorized: Trying to access resource
   under scope…») — і без `teamId`, і з ним. `list_teams` для цього OAuth-токена повертає порожній список: під час
-  входу токен не отримав доступу до команди, якій належить проєкт. Лог — див. `docs/mcp/evidence/vercel-build-log.txt`.
+  входу токен не отримав доступу до команди, якій належить проєкт. Тому лог у
+  `docs/mcp/evidence/vercel-build-log.txt` скопійовано з дашборда Vercel (Build Logs) — production-білд `main`
+  @ `958d2ee`: `npm install` (493 пакети, очікувані `npm warn deprecated`), Next.js 16.3.5 (Turbopack),
+  «Compiled successfully in 8.5s», TypeScript 3.5s, 8 статичних сторінок, «Build Completed … [24s]»,
+  «Deployment completed». Назв команд у лозі немає.
 - **Playwright:** ланцюжок `browser_navigate` → `browser_snapshot` → `browser_fill_form` → `browser_click` →
   `browser_snapshot` → `browser_console_messages` → `browser_network_requests` ×2. Форма відправилась
   («Дякуємо! Заявку отримано…»), у консолі 0 помилок, після відправки — один `POST /` → 200, зовнішніх запитів
