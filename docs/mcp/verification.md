@@ -1,6 +1,6 @@
 # Перевірка (Task A, Task B, бонус E)
 
-- **Інструмент і версія, модель:** Claude Code (desktop app, Code tab) · Claude Opus 5.5
+- **Інструмент і версія, модель:** Claude Code 2.1.283 (CLI + desktop app) · Claude Opus 5.5
 - **ОС і термінал, Node:** Windows 11 Pro · Git Bash · Node 23.4.0 · npm 10.9.2
 
 ## Task A — сервер в Inspector
