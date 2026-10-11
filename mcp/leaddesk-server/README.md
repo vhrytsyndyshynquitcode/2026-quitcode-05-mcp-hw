@@ -20,11 +20,22 @@ npm ci
 node src/server.mjs        # stdio: чекає JSON-RPC на stdin
 ```
 
+HTTP-варіант (бонус E1) — той самий сервер, лише на `127.0.0.1`, з перевіркою `Host` і `Origin`
+на кожен запит:
+
+```bash
+node src/http.mjs          # http://127.0.0.1:3333/mcp
+```
+
+Код поділено так: `src/leaddesk.mjs` — інструменти, ресурс і дані (`factory`); `src/server.mjs` — stdio;
+`src/http.mjs` — Streamable HTTP.
+
 Змінні оточення (необов'язкові):
 
 | Змінна | Що робить |
 |---|---|
 | `LEADDESK_FIXTURE` | шлях до іншого JSON-файла з лідами; за замовчуванням `fixtures/leads.json` поруч із сервером |
+| `LEADDESK_HTTP_PORT` | порт HTTP-варіанта; за замовчуванням `3333` |
 
 ## Перевірка Inspector'ом
 

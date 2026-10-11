@@ -29,10 +29,14 @@
   Inspector завершився з кодом **5** і надрукував у stderr
   `{"error":{"code":"tool_is_error","message":"Tool 'leaddesk_set_lead_status' returned isError:true."}}`.
 - `set-status.json`: `lead_0002` (Rynok Books) `new` → `contacted`; запис аудиту в `structuredContent.audit`:
-  `{ "action": "lead.status_changed:new->contacted", "leadId": "lead_0002", "at": "2026-10-05T09:47:22.715Z" }`.
+  `{ "action": "lead.status_changed:new->contacted", "leadId": "lead_0002", "at": "2026-10-11T12:28:32.574Z" }`.
+  (Чотири JSON перегенеровано 11.10 тими самими командами після правки: `leaddesk_set_lead_status` тепер
+  відмовляє в переході в `new` — `new` ставиться лише під час створення, як і каже ресурс статусів.)
 - Додатково перевірено вручну (у файли не зберігалось):
   - `leadId=lead_9999` → `isError: true`, «Лід lead_9999 не знайдено. Знайдіть правильний id через leaddesk_find_leads…»;
-  - `leadId=lead_0002 status=new` (той самий статус) → `isError: true`, «…уже має статус new — нічого не змінено»;
+  - `leadId=lead_0002 status=new` (той самий статус) → `isError: true`, «…уже має статус new — нічого не змінено»
+    (після правки 11.10 — `isError: true`, «Статус new ставиться лише під час створення ліда…»);
+  - `leadId=lead_0003 status=contacted` при поточному `contacted` → `isError: true`, «…уже має статус contacted»;
   - `leaddesk_find_leads status=new limit=3` → 6 знайдено, показано 3, найновіші першими (`lead_0002`, `lead_0005`, `lead_0004`);
   - `leaddesk_find_leads status=any` — у відповіді жодного `fullName`, `email` чи `message`;
   - `grep -rc 'console\.log' mcp/leaddesk-server/src` → `0`;
@@ -64,8 +68,8 @@
   preview-деплой `READY` з коміту `cc1d6c0`. Сесія лише з `vercel`: `list_deployments` знайшов деплой, але
   лог білду **не віддався**: інструмента `get_deployment_build_logs` з інструкції в сервері вже немає, лог тепер
   віддає `list_deployment_events`, і він повертає `403 forbidden` («Not authorized: Trying to access resource
-  under scope…») — і без `teamId`, і з ним. `list_teams` для цього OAuth-токена повертає порожній список: під час
-  входу токен не отримав доступу до команди, якій належить проєкт. Тому лог у
+  under scope…») — і без `teamId`, і з ним: під час OAuth-входу токен не отримав доступу до scope, якому
+  належить проєкт (повторний вхід з вибором scope ми не робили). Тому лог у
   `docs/mcp/evidence/vercel-build-log.txt` скопійовано з дашборда Vercel (Build Logs) — production-білд `main`
   @ `958d2ee`: `npm install` (493 пакети, очікувані `npm warn deprecated`), Next.js 16.3.5 (Turbopack),
   «Compiled successfully in 8.5s», TypeScript 3.5s, 8 статичних сторінок, «Build Completed … [24s]»,
@@ -75,6 +79,49 @@
   («Дякуємо! Заявку отримано…»), у консолі 0 помилок, після відправки — один `POST /` → 200, зовнішніх запитів
   немає. Деталі — `docs/mcp/evidence/playwright-form-check.md`.
 - Що агент зробив сам, без прохання: у сесії Vercel агент **сам викликав `list_teams` і `list_projects`**
-  (опис параметра `teamId` прямо підказує це зробити). `list_projects` відхилено (не в allow), `list_teams`
-  повернув порожній список; їхні результати ніде не записані. Агент також запропонував обійти 403 через
+  (опис параметра `teamId` прямо підказує це зробити). `list_projects` відхилено (не в allow); результатів цих
+  викликів немає ні в жодному файлі, ні в цьому звіті. Агент також запропонував обійти 403 через
   `vercel inspect --logs` (CLI) — не виконано: CLI тут не встановлено, і це обхід звуження MCP.
+
+## Task E (бонус)
+
+- Варіант: **E1 — HTTP-сервер із захистом Host/Origin**
+- Код: `mcp/leaddesk-server/src/http.mjs`. Фабрику сервера винесено в `src/leaddesk.mjs` (`export const factory`),
+  тож stdio (`src/server.mjs` → `serveStdio(factory)`) і HTTP (`createMcpHandler(factory)`) — один і той самий
+  сервер. Після рефакторингу stdio-версія віддає побайтово ті самі `tools/list` і `resources/read`, що в
+  `docs/mcp/*.json` (`diff` порожній), `bad-input` — так само exit 5.
+- Залежність: `"@modelcontextprotocol/node": "2.1.0"` — точна версія, у тому самому
+  `mcp/leaddesk-server/package.json`; `npm install --save-exact`, `package-lock.json` оновлено.
+- Будова: `toNodeHandler(createMcpHandler(factory))` з `@modelcontextprotocol/node`;
+  `localhostHostValidation()` і `localhostOriginValidation()` **викликано в обробнику запиту** перед
+  `mcp(req, res)` — гвард сам відповідає 403 і повертає `false`. `listen(3333, "127.0.0.1")` — лише loopback.
+- Запуск: `node mcp/leaddesk-server/src/http.mjs` → у stderr `leaddesk MCP over HTTP: http://127.0.0.1:3333/mcp`.
+- Докази — Git Bash, `body.json` з walkthrough (у тимчасовій теці поза репозиторієм, не закомічено):
+
+  ```text
+  $ curl -s -w "\nHTTP %{http_code}\n" "${H[@]}" --data-binary @body.json http://127.0.0.1:3333/mcp
+  {"result":{"tools":[{"name":"leaddesk_find_leads","title":"Знайти ліди за статусом",…},{"name":"leaddesk_set_lead_status",…}]},"jsonrpc":"2.0","id":1}
+  HTTP 200
+
+  $ curl … -H "Host: evil.example" …
+  {"jsonrpc":"2.0","error":{"code":-32000,"message":"Invalid Host: evil.example"},"id":null}
+  HTTP 403
+
+  $ curl … -H "Origin: https://evil.example" …
+  {"jsonrpc":"2.0","error":{"code":-32000,"message":"Invalid Origin: evil.example"},"id":null}
+  HTTP 403
+
+  $ curl … без заголовка MCP-Protocol-Version …
+  {"jsonrpc":"2.0","error":{"code":-32020,"message":"Bad Request: the request headers and body disagree: the body envelope names protocol version 2026-07-28 but the required MCP-Protocol-Version header is absent",…},"id":1}
+  HTTP 400
+  ```
+
+- Додатково (після правки — 404 на інші шляхи), коди відповіді:
+  `POST /admin` → **404**; `Host: localhost.evil.example` → **403**; `Origin: http://localhost:3000` → **200** —
+  Origin-гвард порівнює лише hostname, **без порту**: будь-яка сторінка з `localhost` на іншому порту (наш
+  `npm run dev` на :3000) пройде гвард. Записано в threat model.
+- Висновок: 200 / 403 / 403 / 400 — як очікувалося. Host-гвард закриває DNS rebinding (сторінка з
+  `evil.example`, що резолвиться в 127.0.0.1, приходить із чужим `Host`), Origin-гвард — запит зі сторінки в
+  браузері на інший origin. Ні те, ні інше не є автентифікацією: будь-який локальний процес, що ставить
+  `Host: 127.0.0.1`, отримає доступ до обох інструментів, зокрема до `leaddesk_set_lead_status`. Для
+  запуску поза своєю машиною потрібні були б автентифікація (токен/OAuth) і TLS.

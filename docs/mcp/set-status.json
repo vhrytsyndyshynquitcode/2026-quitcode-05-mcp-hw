@@ -2,7 +2,7 @@
   "content": [
     {
       "type": "text",
-      "text": "Статус lead_0002 (Rynok Books) змінено: new → contacted. Причина: перевірка в Inspector. Запис аудиту: lead.status_changed:new->contacted о 2026-10-05T09:47:22.715Z."
+      "text": "Статус lead_0002 (Rynok Books) змінено: new → contacted. Причина: перевірка в Inspector. Запис аудиту: lead.status_changed:new->contacted о 2026-10-11T12:28:32.574Z."
     }
   ],
   "structuredContent": {
@@ -19,7 +19,7 @@
     "audit": {
       "action": "lead.status_changed:new->contacted",
       "leadId": "lead_0002",
-      "at": "2026-10-05T09:47:22.715Z"
+      "at": "2026-10-11T12:28:32.574Z"
     }
   }
 }
